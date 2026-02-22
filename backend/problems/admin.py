@@ -4,14 +4,14 @@ from .models import Problem
 
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ('number', 'title', 'difficulty', 'category', 'time_standard')
+    list_display = ('hot100_order', 'number', 'title', 'difficulty', 'category', 'time_standard')
     list_filter = ('difficulty', 'category')
     search_fields = ('number', 'title')
     list_editable = ('difficulty', 'category', 'time_standard')
-    ordering = ('number',)
+    ordering = ('hot100_order', 'number')
     fieldsets = (
         ('基本信息', {
-            'fields': ('number', 'title', 'difficulty', 'category', 'leetcode_url', 'time_standard')
+            'fields': ('hot100_order', 'number', 'title', 'difficulty', 'category', 'leetcode_url', 'time_standard')
         }),
         ('题目内容', {
             'fields': ('description',),

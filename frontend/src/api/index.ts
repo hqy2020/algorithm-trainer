@@ -4,6 +4,44 @@ const api = axios.create({
   baseURL: '/api',
 });
 
+interface PaginatedResponse<T> {
+  results: T[];
+  next: string | null;
+}
+
+const toRelativeUrl = (url: string) => {
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    const pathname = parsed.pathname.startsWith('/api/')
+      ? parsed.pathname.replace(/^\/api/, '')
+      : parsed.pathname;
+    return `${pathname}${parsed.search}`;
+  } catch {
+    return url.replace(/^\/api/, '');
+  }
+};
+
+async function fetchAllPages<T>(url: string, params?: Record<string, string | number>): Promise<T[]> {
+  let nextUrl: string | null = url;
+  let first = true;
+  const all: T[] = [];
+
+  while (nextUrl) {
+    const response: { data: PaginatedResponse<T> | T[] } = await api.get<PaginatedResponse<T> | T[]>(nextUrl, {
+      params: first ? params : undefined,
+    });
+    const data: PaginatedResponse<T> | T[] = response.data;
+    if (Array.isArray(data)) {
+      all.push(...data);
+      break;
+    }
+    all.push(...data.results);
+    nextUrl = data.next ? toRelativeUrl(data.next) : null;
+    first = false;
+  }
+  return all;
+}
+
 // ===== Types =====
 export interface Profile {
   id: number;
@@ -13,6 +51,7 @@ export interface Profile {
 
 export interface Problem {
   id: number;
+  hot100_order: number;
   number: number;
   title: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
@@ -36,8 +75,39 @@ export interface Submission {
   test_cases_total: number;
   test_cases_passed: number;
   feedback: string;
+  ai_feedback: string;
   time_rating: 'excellent' | 'passing' | 'needs_improvement';
   created_at: string;
+}
+
+export interface SubmissionCreateResponse extends Submission {
+  is_new_record: boolean;
+  is_first_pass: boolean;
+  is_record_break: boolean;
+  previous_best: number | null;
+}
+
+export interface PersonalBestRecord {
+  submission_id: number;
+  time_spent: number;
+  created_at: string;
+}
+
+export interface PersonalBest {
+  has_record: boolean;
+  best_time: number | null;
+  submission_id?: number;
+  created_at?: string;
+  records: PersonalBestRecord[];
+}
+
+export interface PersonalBestsResponse {
+  user: number;
+  records: Array<{
+    problem_id: number;
+    best_time: number;
+    solved_count: number;
+  }>;
 }
 
 export interface Note {
@@ -81,22 +151,28 @@ export interface CompareItem {
 
 // ===== API =====
 export const profilesApi = {
-  list: () => api.get<Profile[]>('/profiles/').then(r => r.data),
+  list: () => fetchAllPages<Profile>('/profiles/'),
+  create: (data: { name: string; color: string }) => api.post<Profile>('/profiles/', data).then(r => r.data),
 };
 
 export const problemsApi = {
-  list: () => api.get<{ results: Problem[] }>('/problems/').then(r => r.data.results),
+  list: () => fetchAllPages<Problem>('/problems/'),
   get: (id: number) => api.get<Problem>(`/problems/${id}/`).then(r => r.data),
   solution: (id: number) => api.get<{ solution_code: string; solution_explanation: string }>(`/problems/${id}/solution/`).then(r => r.data),
 };
 
 export const submissionsApi = {
   list: (params?: Record<string, string | number>) =>
-    api.get<{ results: Submission[] }>('/submissions/', { params }).then(r => r.data.results),
-  create: (data: Partial<Submission>) => api.post<Submission>('/submissions/', data).then(r => r.data),
+    fetchAllPages<Submission>('/submissions/', params),
+  create: (data: Partial<Submission>) =>
+    api.post<SubmissionCreateResponse>('/submissions/', data).then(r => r.data),
   stats: (userId?: number) =>
     api.get<Stats>('/submissions/stats/', { params: userId ? { user: userId } : {} }).then(r => r.data),
   compare: () => api.get<CompareItem[]>('/submissions/compare/').then(r => r.data),
+  personalBest: (userId: number, problemId: number) =>
+    api.get<PersonalBest>('/submissions/personal_best/', { params: { user: userId, problem: problemId } }).then(r => r.data),
+  personalBests: (userId: number) =>
+    api.get<PersonalBestsResponse>('/submissions/personal_bests/', { params: { user: userId } }).then(r => r.data),
 };
 
 export const notesApi = {

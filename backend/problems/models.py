@@ -8,6 +8,7 @@ class Problem(models.Model):
         ('Hard', '困难'),
     ]
 
+    hot100_order = models.PositiveIntegerField(default=9999, db_index=True, verbose_name='Hot100 顺序')
     number = models.IntegerField(unique=True, verbose_name='LeetCode 题号')
     title = models.CharField(max_length=200, verbose_name='题目名称')
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, verbose_name='难度')
@@ -22,7 +23,7 @@ class Problem(models.Model):
     class Meta:
         verbose_name = '题目'
         verbose_name_plural = '题目'
-        ordering = ['number']
+        ordering = ['hot100_order', 'number']
 
     def __str__(self):
         return f'{self.number}. {self.title}'

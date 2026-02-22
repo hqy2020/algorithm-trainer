@@ -1,34 +1,32 @@
-import { Avatar, Dropdown, Space } from 'antd';
-import { UserOutlined, SwapOutlined } from '@ant-design/icons';
+import { Avatar, Button, Select, Space } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
 import type { Profile } from '../api';
 
 interface Props {
+  current: Profile;
   users: Profile[];
-  current: Profile | null;
-  onChange: (user: Profile) => void;
+  onChangeUser: (userId: number) => void;
 }
 
-export default function UserSwitcher({ users, current, onChange }: Props) {
-  if (!current) return null;
-
-  const items = users.map(u => ({
-    key: String(u.id),
-    label: (
-      <Space>
-        <Avatar size="small" style={{ backgroundColor: u.color }}>{u.name[0]}</Avatar>
-        {u.name}
-      </Space>
-    ),
-    onClick: () => onChange(u),
-  }));
+export default function UserSwitcher({ current, users, onChangeUser }: Props) {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const adminUrl = `http://${hostname}:10001/admin/`;
 
   return (
-    <Dropdown menu={{ items }} trigger={['click']}>
-      <Space style={{ cursor: 'pointer' }}>
-        <Avatar style={{ backgroundColor: current.color }}>{current.name[0]}</Avatar>
-        <span style={{ fontWeight: 500 }}>{current.name}</span>
-        <SwapOutlined />
-      </Space>
-    </Dropdown>
+    <Space>
+      <Avatar style={{ backgroundColor: current.color }}>{current.name[0]}</Avatar>
+      <Select
+        value={current.id}
+        style={{ width: 180 }}
+        onChange={(value) => onChangeUser(value)}
+        options={users.map(user => ({
+          value: user.id,
+          label: user.name,
+        }))}
+      />
+      <Button size="small" icon={<SettingOutlined />} href={adminUrl} target="_blank" rel="noopener noreferrer">
+        Django 后台
+      </Button>
+    </Space>
   );
 }

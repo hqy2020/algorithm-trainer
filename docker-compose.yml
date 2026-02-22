@@ -2,15 +2,28 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "10001:8000"
+    volumes:
+      - backend_data:/data
     environment:
       - PYTHONUNBUFFERED=1
+      - DB_PATH=/data/db.sqlite3
+      - AI_API_BASE_URL=${AI_API_BASE_URL:-https://api.modelverse.cn/v1}
+      - AI_API_MODEL=${AI_API_MODEL:-gpt-5.1-codex-mini}
+      - AI_API_TIMEOUT_SECONDS=${AI_API_TIMEOUT_SECONDS:-45}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - ADMIN_AUTO_LOGIN=${ADMIN_AUTO_LOGIN:-1}
+      - ADMIN_AUTO_LOGIN_USERNAME=${ADMIN_AUTO_LOGIN_USERNAME:-autoadmin}
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "10000:3000"
     environment:
       - API_URL=http://backend:8000
+      - VITE_ADMIN_URL=http://localhost:10001/admin/
     depends_on:
       - backend
+
+volumes:
+  backend_data:

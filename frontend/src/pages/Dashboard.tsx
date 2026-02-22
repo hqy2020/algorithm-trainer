@@ -1,35 +1,48 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Tag, List, Typography } from 'antd';
+import { Card, Row, Col, Statistic, Tag, List, Typography, Select, Space } from 'antd';
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   FireOutlined,
   TrophyOutlined,
 } from '@ant-design/icons';
-import { submissionsApi, problemsApi, Stats, Problem } from '../api';
+import { submissionsApi, problemsApi, Stats, Profile } from '../api';
 
 const { Title } = Typography;
 
 interface Props {
-  userId: number;
+  profiles: Profile[];
+  viewUserId: number;
+  onChangeViewUser: (userId: number) => void;
 }
 
-export default function Dashboard({ userId }: Props) {
+export default function Dashboard({ profiles, viewUserId, onChangeViewUser }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [totalProblems, setTotalProblems] = useState(0);
   const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
 
   useEffect(() => {
-    submissionsApi.stats(userId).then(setStats);
+    submissionsApi.stats(viewUserId).then(setStats);
     problemsApi.list().then(p => setTotalProblems(p.length));
-    submissionsApi.list({ user: userId }).then(s => setRecentSubmissions(s.slice(0, 5)));
-  }, [userId]);
+    submissionsApi.list({ user: viewUserId }).then(s => setRecentSubmissions(s.slice(0, 5)));
+  }, [viewUserId]);
 
   if (!stats) return null;
 
   return (
     <div>
-      <Title level={3}>📊 刷题概览</Title>
+      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }} wrap>
+        <Title level={3} style={{ margin: 0 }}>📊 刷题概览</Title>
+        <Space>
+          <span style={{ color: '#666' }}>视角用户</span>
+          <Select
+            style={{ width: 180 }}
+            value={viewUserId}
+            onChange={onChangeViewUser}
+            options={profiles.map(p => ({ value: p.id, label: p.name }))}
+          />
+        </Space>
+      </Space>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>

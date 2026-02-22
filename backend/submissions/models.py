@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from users.models import Profile
 from problems.models import Problem
 
@@ -12,6 +13,7 @@ class Submission(models.Model):
     test_cases_total = models.IntegerField(default=0, verbose_name='总测试用例')
     test_cases_passed = models.IntegerField(default=0, verbose_name='通过用例数')
     feedback = models.TextField(blank=True, verbose_name='反馈/优化建议')
+    ai_feedback = models.TextField(blank=True, verbose_name='AI 反馈')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -39,3 +41,66 @@ class Submission(models.Model):
         elif minutes <= passing:
             return 'passing'
         return 'needs_improvement'
+
+
+class AIReviewPrompt(models.Model):
+    RESULT_PASSED = 'passed'
+    RESULT_FAILED = 'failed'
+    RESULT_CHOICES = [
+        (RESULT_PASSED, '通过后优化建议'),
+        (RESULT_FAILED, '未通过纠错建议'),
+    ]
+
+    result_type = models.CharField(
+        max_length=10,
+        choices=RESULT_CHOICES,
+        unique=True,
+        verbose_name='提交结果类型',
+    )
+    prompt = models.TextField(verbose_name='提示词模板')
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'AI 评估提示词'
+        verbose_name_plural = 'AI 评估提示词'
+
+    def __str__(self):
+        return dict(self.RESULT_CHOICES).get(self.result_type, self.result_type)
+
+
+class AIProviderConfig(models.Model):
+    provider_name = models.CharField(
+        max_length=100,
+        default='modelverse-openai-compatible',
+        verbose_name='提供方名称',
+    )
+    api_base_url = models.URLField(
+        default='https://api.modelverse.cn/v1',
+        verbose_name='API Base URL',
+    )
+    api_key = models.TextField(blank=True, verbose_name='API Key（明文）')
+    model_name = models.CharField(
+        max_length=100,
+        default='gpt-5.1-codex-mini',
+        verbose_name='模型名称',
+    )
+    timeout_seconds = models.PositiveIntegerField(default=45, verbose_name='超时秒数')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'AI Provider 配置'
+        verbose_name_plural = 'AI Provider 配置'
+
+    def clean(self):
+        if not self.pk and AIProviderConfig.objects.exists():
+            raise ValidationError('仅允许一条 AI Provider 配置')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.provider_name
