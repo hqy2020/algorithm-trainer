@@ -86,6 +86,10 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
 }
 
 # AI 评估（OpenAI 兼容 API）
@@ -94,9 +98,19 @@ AI_API_KEY = os.getenv('AI_API_KEY', '').strip()
 AI_API_MODEL = os.getenv('AI_API_MODEL', 'gpt-5.1-codex-mini')
 AI_API_TIMEOUT_SECONDS = int(os.getenv('AI_API_TIMEOUT_SECONDS', '45'))
 
+# 启动时检查 AI API 配置
+if not AI_API_KEY:
+    import warnings
+    warnings.warn(
+        'AI_API_KEY 环境变量未配置，AI 代码评审功能将不可用。'
+        '请在 .env 或 docker-compose.yml 中设置 AI_API_KEY。'
+    )
+
 # Django Admin 免密自动登录（默认开启）
 ADMIN_AUTO_LOGIN = os.getenv('ADMIN_AUTO_LOGIN', '1').strip().lower() in ('1', 'true', 'yes', 'on')
 ADMIN_AUTO_LOGIN_USERNAME = os.getenv('ADMIN_AUTO_LOGIN_USERNAME', 'autoadmin').strip() or 'autoadmin'
 
 # 前端地址（用于后端根路径跳转）
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:10000').strip() or 'http://localhost:10000'
+# 为空时，后端会按请求主机动态跳转到 http(s)://<当前主机>:FRONTEND_PORT。
+FRONTEND_URL = os.getenv('FRONTEND_URL', '').strip()
+FRONTEND_PORT = int(os.getenv('FRONTEND_PORT', '10000'))

@@ -18,7 +18,7 @@ import { profilesApi, Profile } from './api';
 
 const { Header, Content, Sider } = Layout;
 
-type BattleMode = 'single' | 'duel';
+type BattleMode = 'single' | 'room';
 
 const LEGACY_SELECTED_PROFILE_KEY = 'selectedProfileId';
 const BATTLE_MODE_KEY = 'battle_mode';
@@ -261,7 +261,7 @@ function AppRoot() {
 
         const initialMode: BattleMode = list.length < 2
           ? 'single'
-          : (storedMode === 'single' ? 'single' : 'duel');
+          : (storedMode === 'single' ? 'single' : 'room');
 
         setBattleUserAId(initialA);
         setBattleUserBId(initialB);
